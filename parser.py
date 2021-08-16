@@ -11,6 +11,19 @@ MAP_WIDTH  = 512
 TILE_WIDTH = 128
 TILE_HEADER_LEN = TILE_WIDTH**2
 TILE_HEADER_SIZE = TILE_HEADER_LEN*2
+BLOCK_BITMAP_SIZE = 512
+BLOCK_EXTRA_DATA = 3
+BLOCK_SIZE = BLOCK_BITMAP_SIZE + BLOCK_EXTRA_DATA
+
+class Block():
+
+    def __init__(self, x, y, data):
+        self.x = x
+        self.y = y
+        self.bitmap = data[:BLOCK_BITMAP_SIZE]
+        # TODO: not sure what this is. checksum?
+        self.extra_data = data[BLOCK_BITMAP_SIZE:BLOCK_SIZE]
+
 
 class Tile():
 
@@ -30,6 +43,16 @@ class Tile():
         # header is a 2d array of shorts, it contains the maping of blocks
         header = struct.unpack(str(TILE_HEADER_LEN) +
                                "H", data[:TILE_HEADER_SIZE])
+        self.blocks = {}
+        for i, block_idx in enumerate(header):
+            if block_idx > 0:
+                block_x = i % TILE_WIDTH
+                block_y = i // TILE_WIDTH
+                start_offset = TILE_HEADER_SIZE + (block_idx-1) * BLOCK_SIZE
+                end_offset = start_offset + BLOCK_SIZE
+                block_data = data[start_offset:end_offset]
+                self.blocks[(block_x, block_y)] = Block(block_x, block_y, block_data)
+
 
 
 class FogMap():
@@ -41,6 +64,8 @@ class FogMap():
         self.path = os.path.join(path, '')
         sync_folder = os.path.join(self.path, 'Sync')
         assert os.path.isdir(sync_folder)
+        self.tile_map = {}
         for filename in os.listdir(sync_folder):
             if len(filename) == 12:
                 tile = Tile(sync_folder, filename)
+                self.tile_map[(tile.x, tile.y)] = tile
