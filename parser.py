@@ -14,6 +14,7 @@ TILE_HEADER_SIZE = TILE_HEADER_LEN*2
 BLOCK_BITMAP_SIZE = 512
 BLOCK_EXTRA_DATA = 3
 BLOCK_SIZE = BLOCK_BITMAP_SIZE + BLOCK_EXTRA_DATA
+BITMAP_WIDTH = 64
 
 class Block():
 
@@ -23,6 +24,12 @@ class Block():
         self.bitmap = data[:BLOCK_BITMAP_SIZE]
         # TODO: not sure what this is. checksum?
         self.extra_data = data[BLOCK_BITMAP_SIZE:BLOCK_SIZE]
+
+    def is_visited(self, x, y):
+        bit_offset = 7 - x % 8
+        i = x // 8
+        j = y
+        return self.bitmap[j*8+i] & (1<<bit_offset)
 
 
 class Tile():
