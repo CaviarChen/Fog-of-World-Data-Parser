@@ -2,12 +2,13 @@
 # good performance, it is more like a demo for showing the data
 # structure.
 import os
+import math
 import zlib
 import struct
 
 
 FILENAME_ENCODING = {k: v for v, k in enumerate("olhwjsktri")}
-MAP_WIDTH  = 512
+MAP_WIDTH = 512
 TILE_WIDTH = 128
 TILE_HEADER_LEN = TILE_WIDTH**2
 TILE_HEADER_SIZE = TILE_HEADER_LEN*2
@@ -15,6 +16,7 @@ BLOCK_BITMAP_SIZE = 512
 BLOCK_EXTRA_DATA = 3
 BLOCK_SIZE = BLOCK_BITMAP_SIZE + BLOCK_EXTRA_DATA
 BITMAP_WIDTH = 64
+
 
 class Block():
 
@@ -29,7 +31,13 @@ class Block():
         bit_offset = 7 - x % 8
         i = x // 8
         j = y
-        return self.bitmap[j*8+i] & (1<<bit_offset)
+        return self.bitmap[i+j*8] & (1 << bit_offset)
+
+
+def _tile_x_y_to_lng_lat(x: int, y: int):
+    lng = x/512*360-180
+    lat = math.atan(math.sinh(math.pi-2*math.pi*y/512))*180/math.pi
+    return (lng, lat)
 
 
 class Tile():
@@ -58,7 +66,14 @@ class Tile():
                 start_offset = TILE_HEADER_SIZE + (block_idx-1) * BLOCK_SIZE
                 end_offset = start_offset + BLOCK_SIZE
                 block_data = data[start_offset:end_offset]
-                self.blocks[(block_x, block_y)] = Block(block_x, block_y, block_data)
+                self.blocks[(block_x, block_y)] = Block(
+                    block_x, block_y, block_data)
+
+    def bounds(self):
+        (lng1, lat1) = _tile_x_y_to_lng_lat(self.x, self.y)
+        (lng2, lat2) = _tile_x_y_to_lng_lat(self.x+1, self.y+1)
+        # return ((min(lat1, lat2), min(lng1, lng2)), (max(lat1, lat2), max(lng1, lng2)))
+        return [[min(lat1, lat2), min(lng1, lng2)], [max(lat1, lat2), max(lng1, lng2)]]
 
 
 
