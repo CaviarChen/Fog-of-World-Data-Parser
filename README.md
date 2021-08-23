@@ -7,3 +7,5 @@ You can find these by searching `TODO` in the repo.
 Contributions are welcome and very appreciated.
 
 **I'm also interested in building 3rd party tools for Fog of World, so don't hesitate to share your idea and need with me.**
+
+![screenshot](./.github/screenshot.png)
