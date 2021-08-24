@@ -72,8 +72,7 @@ class Tile():
     def bounds(self):
         (lng1, lat1) = _tile_x_y_to_lng_lat(self.x, self.y)
         (lng2, lat2) = _tile_x_y_to_lng_lat(self.x+1, self.y+1)
-        # return ((min(lat1, lat2), min(lng1, lng2)), (max(lat1, lat2), max(lng1, lng2)))
-        return [[min(lat1, lat2), min(lng1, lng2)], [max(lat1, lat2), max(lng1, lng2)]]
+        return ((min(lat1, lat2), min(lng1, lng2)), (max(lat1, lat2), max(lng1, lng2)))
 
 
 
