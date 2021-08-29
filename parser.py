@@ -5,6 +5,7 @@ import os
 import math
 import zlib
 import struct
+import hashlib
 
 
 FILENAME_ENCODING = {k: v for v, k in enumerate("olhwjsktri")}
@@ -45,13 +46,17 @@ class Tile():
     def __init__(self, sync_folder, filename):
         file = os.path.join(sync_folder, filename)
         # parse filename
-        # TODO: figure out what the rest part of the filename is
         self.id = 0
         for v in [FILENAME_ENCODING[c] for c in filename[4:10]]:
             self.id = self.id * 10 + v
         self.x = self.id % MAP_WIDTH
         self.y = self.id // MAP_WIDTH
         print("Loading tile. id: {}, x: {}, y: {}".format(self.id, self.x, self.y))
+
+        # filename should start with md5(tileId)
+        if (hashlib.md5(str(self.id).encode()).hexdigest()[0:4] != filename[0:4]):
+            print("WARNING: the filename {} is not valid.".format(filename))
+
         with open(file, "rb") as f:
             data = f.read()
             data = zlib.decompress(data)
