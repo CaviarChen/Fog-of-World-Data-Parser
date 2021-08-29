@@ -47,7 +47,7 @@ class Tile():
         file = os.path.join(sync_folder, filename)
         # parse filename
         self.id = 0
-        for v in [FILENAME_ENCODING[c] for c in filename[4:10]]:
+        for v in [FILENAME_ENCODING[c] for c in filename[4:-2]]:
             self.id = self.id * 10 + v
         self.x = self.id % MAP_WIDTH
         self.y = self.id // MAP_WIDTH
@@ -92,6 +92,5 @@ class FogMap():
         assert os.path.isdir(sync_folder)
         self.tile_map = {}
         for filename in os.listdir(sync_folder):
-            if len(filename) == 12:
-                tile = Tile(sync_folder, filename)
-                self.tile_map[(tile.x, tile.y)] = tile
+            tile = Tile(sync_folder, filename)
+            self.tile_map[(tile.x, tile.y)] = tile
