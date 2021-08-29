@@ -7,8 +7,10 @@ import zlib
 import struct
 import hashlib
 
+FILENAME_MASK1 = "olhwjsktri"
+FILENAME_MASK2 = "eizxdwknmo"
+FILENAME_ENCODING = {k: v for v, k in enumerate(FILENAME_MASK1)}
 
-FILENAME_ENCODING = {k: v for v, k in enumerate("olhwjsktri")}
 MAP_WIDTH = 512
 TILE_WIDTH = 128
 TILE_HEADER_LEN = TILE_WIDTH**2
@@ -53,8 +55,10 @@ class Tile():
         self.y = self.id // MAP_WIDTH
         print("Loading tile. id: {}, x: {}, y: {}".format(self.id, self.x, self.y))
 
-        # filename should start with md5(tileId)
-        if (hashlib.md5(str(self.id).encode()).hexdigest()[0:4] != filename[0:4]):
+        # filename should start with md5(tileId) and end with mask2(tileId[-2:])
+        match1 = hashlib.md5(str(self.id).encode()).hexdigest()[0:4] == filename[0:4]
+        match2 = "".join([FILENAME_MASK2[int(i)] for i in str(self.id)[-2:]]) == filename[-2:]
+        if not (match1 and match2):
             print("WARNING: the filename {} is not valid.".format(filename))
 
         with open(file, "rb") as f:
