@@ -20,6 +20,14 @@ BLOCK_EXTRA_DATA = 3
 BLOCK_SIZE = BLOCK_BITMAP_SIZE + BLOCK_EXTRA_DATA
 BITMAP_WIDTH = 64
 
+NNZ_FOR_BYTE = bytes(bin(x).count("1") for x in range(256)) 
+def nnz(data):
+    """count number of bit 1s in given piece of data.
+    """
+    count = 0
+    for b in data:
+        count = count + NNZ_FOR_BYTE[b]
+    return count
 
 class Block():
 
@@ -27,8 +35,21 @@ class Block():
         self.x = x
         self.y = y
         self.bitmap = data[:BLOCK_BITMAP_SIZE]
-        # TODO: not sure what this is. checksum?
         self.extra_data = data[BLOCK_BITMAP_SIZE:BLOCK_SIZE]
+
+        # extra_data has three bytes, the bitwise representation is: XXXX XYYY YY0Z ZZZZ ZZZZ ZZZ1, where:
+        # XXXXX: first char of region string, offset by ascii "?"
+        # YYYYY: second char of region string, offset by ascii "?"
+        # ZZZZZZZZZZZZ: number of 1s in bitmap, from 1 to 4196
+        region_str0 = ((self.extra_data[0] >> 3) + b"?"[0]).to_bytes(1, "big").decode()
+        region_str1 = ((((self.extra_data[0] & 0x7) << 2) | ((self.extra_data[1] & 0xC0) >> 6)) + b"?"[0]).to_bytes(1, "big").decode() 
+        self.region = region_str0 + region_str1
+        # region string "@@" means either national border or international area
+        if self.region == "@@": self.region = "BORDER/INTERNATIONAL"
+        checksum = struct.unpack('>H', self.extra_data[1:])[0] & 0x3FFF 
+        if nnz(self.bitmap) << 1 != checksum - 1:
+            print("WARNING: block ({},{}) checksum is not correct.".format(self.x, self.y))
+
 
     def is_visited(self, x, y):
         bit_offset = 7 - x % 8
@@ -68,6 +89,7 @@ class Tile():
         header = struct.unpack(str(TILE_HEADER_LEN) +
                                "H", data[:TILE_HEADER_SIZE])
         self.blocks = {}
+        self.region_set = set()
         for i, block_idx in enumerate(header):
             if block_idx > 0:
                 block_x = i % TILE_WIDTH
@@ -75,8 +97,10 @@ class Tile():
                 start_offset = TILE_HEADER_SIZE + (block_idx-1) * BLOCK_SIZE
                 end_offset = start_offset + BLOCK_SIZE
                 block_data = data[start_offset:end_offset]
-                self.blocks[(block_x, block_y)] = Block(
-                    block_x, block_y, block_data)
+                block = Block(block_x, block_y, block_data)
+                self.region_set.add(block.region)
+                self.blocks[(block_x, block_y)] = block 
+                
 
     def bounds(self):
         (lng1, lat1) = _tile_x_y_to_lng_lat(self.x, self.y)
@@ -95,6 +119,9 @@ class FogMap():
         sync_folder = os.path.join(self.path, 'Sync')
         assert os.path.isdir(sync_folder)
         self.tile_map = {}
+        self.region_set = set()
         for filename in os.listdir(sync_folder):
             tile = Tile(sync_folder, filename)
+            self.region_set.update(tile.region_set)
             self.tile_map[(tile.x, tile.y)] = tile
+        print("traversed region: {}".format(self.region_set))
